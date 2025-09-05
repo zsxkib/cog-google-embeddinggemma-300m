@@ -1,4 +1,28 @@
-torch
-diffusers
-transformers
-accelerate
+# NumPy - pin to 1.x for compatibility
+numpy>=1.21.0,<2.0.0
+
+# Core ML libraries - compatible versions
+torch>=2.0.0,<2.3.0
+torchvision
+torchaudio
+
+# HuggingFace libraries - newer versions for Gemma 3 support
+transformers>=4.42.0
+tokenizers>=0.19.0
+
+# Sentence Transformers - latest for Gemma support
+sentence-transformers>=3.0.0
+
+# Essential dependencies
+scipy>=1.7.0,<1.12.0
+scikit-learn>=1.0.0,<1.4.0
+
+# Performance optimization
+accelerate>=0.20.0,<0.30.0
+
+# Tensor operations and data handling
+safetensors>=0.3.0
+
+# Embedding utilities
+Pillow
+requests
