@@ -17,7 +17,9 @@ Turn any text into a 768-dimensional vector that captures its meaning. Google's 
 
 **Smart task handling**: Unlike generic embedding models, this one knows the difference between search queries and documents, questions and answers. It uses different internal prompts depending on your task.
 
-**Multiple output formats**: Get embeddings as JSON arrays or compact base64 strings.
+**Efficient by default**: Returns compact base64 format that's 75% smaller than JSON arrays - perfect for storage and APIs.
+
+**Auto-truncation**: Long text gets automatically truncated to fit model limits with clear logging.
 
 **Multilingual**: Trained on 100+ languages, so it works well beyond English.
 
@@ -33,13 +35,27 @@ Turn any text into a 768-dimensional vector that captures its meaning. Google's 
 
 ## How to use it
 
-### Basic text embedding
+### Basic text embedding (base64 default)
 
 ```python
 output = replicate.run(
     "zsxkib/cog-google-embeddinggemma-300m",
     input={"text": "Machine learning helps computers understand data"}
 )
+# Returns compact base64 string
+```
+
+### Array format for direct use
+
+```python
+output = replicate.run(
+    "zsxkib/cog-google-embeddinggemma-300m",
+    input={
+        "text": "Machine learning helps computers understand data",
+        "output_format": "array"
+    }
+)
+# Returns [0.1, -0.3, 0.7, ...]
 ```
 
 ### Search setup (query + documents)
@@ -64,41 +80,55 @@ query_embedding = replicate.run(
 )
 ```
 
-### Compact storage format
-
-```python
-output = replicate.run(
-    "zsxkib/cog-google-embeddinggemma-300m",
-    input={
-        "text": "Your text here",
-        "output_format": "base64"
-    }
-)
-```
-
 ## Input parameters
 
-- **text** (string): Your input text (up to 2048 tokens)
+- **text** (string): Your input text (auto-truncated to 2048 tokens)
 - **task** (string): What you're using the embedding for - `retrieval_document`, `retrieval_query`, `classification`, `clustering`, `semantic_similarity`, `question_answering`, `fact_verification`, or `code_retrieval`
-- **output_format** (string): `array` for JSON or `base64` for compact binary
+- **output_format** (string): `base64` for compact storage (default) or `array` for direct use
 - **normalize** (boolean): Whether to normalize to unit length (default: true)
 
-## What you get
+## Output formats
 
+**Base64 (default)**:
+```json
+{
+  "embedding": "pVK9vQAAgDwAAIA8...",
+  "output_format": "base64",
+  "shape": [768],
+  "processing_time_ms": 45.2
+}
+```
+
+**Array**:
 ```json
 {
   "embedding": [0.1, -0.3, 0.7, ...],
-  "shape": [768],
-  "task": "retrieval_document",
   "output_format": "array", 
-  "normalized": true,
-  "processing_time_ms": 342.5,
-  "model_info": {
-    "name": "google/embedding-gemma-300m",
-    "dimensions": 768,
-    "max_sequence_length": 2048,
-    "device": "cuda:0"
-  }
+  "shape": [768],
+  "processing_time_ms": 45.2
+}
+```
+
+## Working with base64 embeddings
+
+Base64 is more efficient but needs decoding:
+
+**Python**:
+```python
+import base64
+import numpy as np
+
+# Decode base64 to numpy array
+embedding_bytes = base64.b64decode(output["embedding"])
+embedding = np.frombuffer(embedding_bytes, dtype=np.float32)
+print(embedding.shape)  # (768,)
+```
+
+**JavaScript**:
+```javascript
+function decodeBase64Embedding(base64String) {
+    const bytes = Uint8Array.from(atob(base64String), c => c.charCodeAt(0));
+    return new Float32Array(bytes.buffer);
 }
 ```
 
@@ -106,11 +136,11 @@ output = replicate.run(
 
 **Match your tasks**: Use `retrieval_query` for search terms, `retrieval_document` for the content you're searching through. The model gives better results when it knows what you're doing.
 
-**Batch when possible**: Process multiple texts in separate calls but reuse the same model instance for efficiency.
+**Choose your format**: Use `base64` for storage/APIs (75% smaller), `array` for direct computation.
 
-**Right-size dimensions**: All embeddings are 768 dimensions - perfect for most similarity tasks without being too large.
+**Auto-truncation**: Text over 2048 tokens gets truncated automatically - check the logs.
 
-**Consistent processing**: Use the same task type for texts you'll compare later.
+**Consistent processing**: Use the same task type and format for texts you'll compare later.
 
 ## Technical details
 

@@ -8,9 +8,10 @@ Run Google's EmbeddingGemma-300M model to turn text into embeddings. The model w
 
 - **Turn text into numbers**: Google's EmbeddingGemma-300M model converts text into 768-dimensional vectors
 - **Fast downloads**: Model weights cache automatically from CDN on first run
-- **Multiple formats**: Get embeddings as JSON arrays or base64 strings
+- **Efficient output**: Base64 format by default for compact storage and transmission
 - **Task-aware**: Different prompts for search, Q&A, classification, and more
 - **GPU fast**: Runs on CUDA for quick inference
+- **Auto-truncation**: Long text gets automatically truncated to fit model limits
 
 ## Quick Start
 
@@ -33,9 +34,9 @@ The first run takes a few extra minutes to download the 2.4GB model weights. Aft
 
 | Parameter | Type | Default | What it does |
 |-----------|------|---------|-------------|
-| `text` | string | required | Your input text (up to 2048 tokens) |
+| `text` | string | required | Your input text (auto-truncated to 2048 tokens) |
 | `task` | string | `"retrieval_document"` | What you're using the embedding for |
-| `output_format` | string | `"array"` | How you want the embedding returned |
+| `output_format` | string | `"base64"` | How you want the embedding returned |
 | `normalize` | boolean | `true` | Whether to normalize to unit length |
 
 ### Task types
@@ -53,12 +54,46 @@ Pick the right task for better embeddings:
 
 ### Output formats
 
-- `array`: Regular JSON list of numbers
-- `base64`: Compressed binary format (smaller for storage)
+**Base64 (default)**: Compact binary format, great for storage and APIs
+```bash
+cog predict -i text="Hello world"
+# Returns: embedding as base64 string
+```
+
+**Array**: Regular JSON numbers, easier to work with directly
+```bash
+cog predict -i text="Hello world" -i output_format="array" 
+# Returns: embedding as [0.1, -0.3, 0.7, ...]
+```
+
+### Working with base64 embeddings
+
+Base64 embeddings are more efficient but need decoding:
+
+**Python**:
+```python
+import base64
+import numpy as np
+
+# Decode base64 to numpy array
+embedding_b64 = "your_base64_string_here"
+embedding_bytes = base64.b64decode(embedding_b64)
+embedding = np.frombuffer(embedding_bytes, dtype=np.float32)
+print(embedding.shape)  # (768,)
+```
+
+**JavaScript**:
+```javascript
+// Decode base64 to Float32Array
+function decodeBase64Embedding(base64String) {
+    const bytes = Uint8Array.from(atob(base64String), c => c.charCodeAt(0));
+    return new Float32Array(bytes.buffer);
+}
+```
 
 ## Examples
 
-Basic embedding:
+Basic embedding (base64):
 ```bash
 cog predict -i text="Machine learning helps computers learn from data"
 ```
@@ -72,27 +107,36 @@ cog predict -i text="Python is a programming language" -i task="retrieval_docume
 cog predict -i text="What is Python?" -i task="retrieval_query"
 ```
 
-Base64 format:
+Array format for direct use:
 ```bash
-cog predict -i text="Hello world" -i output_format="base64"
+cog predict -i text="Hello world" -i output_format="array"
 ```
 
 ## What you get back
 
+**Base64 format (default)**:
 ```json
 {
-  "embedding": [0.1, -0.3, 0.7, ...],  // 768 numbers
+  "embedding": "base64encodedstring==",
+  "shape": [768],
+  "task": "retrieval_document", 
+  "output_format": "base64",
+  "normalized": true,
+  "processing_time_ms": 45.2,
+  "model_info": {...}
+}
+```
+
+**Array format**:
+```json
+{
+  "embedding": [0.1, -0.3, 0.7, ...],
   "shape": [768],
   "task": "retrieval_document", 
   "output_format": "array",
   "normalized": true,
-  "processing_time_ms": 340.36,
-  "model_info": {
-    "name": "google/embedding-gemma-300m",
-    "dimensions": 768,
-    "max_sequence_length": 2048,
-    "device": "cuda:0"
-  }
+  "processing_time_ms": 45.2,
+  "model_info": {...}
 }
 ```
 
@@ -100,8 +144,8 @@ cog predict -i text="Hello world" -i output_format="base64"
 
 - Model: ~600MB compressed
 - Embeddings: 768 dimensions
-- Text limit: 2048 tokens (roughly 1500 words)
-- Speed: 300-500ms per text on GPU
+- Text limit: 2048 tokens (auto-truncated with logging)
+- Speed: 45-50ms per text on GPU
 - First run: Extra 2-3 minutes for download
 
 ## How it works

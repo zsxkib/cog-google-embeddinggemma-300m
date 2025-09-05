@@ -111,7 +111,7 @@ class Predictor(BasePredictor):
         ),
         output_format: str = Input(
             description="Format for the embedding output",
-            default="base64",
+            default="array",
             choices=[k for k, _ in FORMATS]
         ),
         normalize: bool = Input(
@@ -126,12 +126,8 @@ class Predictor(BasePredictor):
         if not text or not text.strip():
             raise ValueError("Text input cannot be empty")
             
-        # Auto-truncate long text with logging
-        original_length = len(text.split())
-        if original_length > self.MAX_TOKENS:
-            text_words = text.split()[:self.MAX_TOKENS]
-            text = ' '.join(text_words)
-            print(f"[INFO] Text truncated from {original_length} to {self.MAX_TOKENS} tokens to fit model limits")
+        if len(text.split()) > self.MAX_TOKENS:
+            raise ValueError(f"Text is too long. Maximum {self.MAX_TOKENS} tokens allowed")
         
         try:
             # Create task-specific prompt following embedding best practices
