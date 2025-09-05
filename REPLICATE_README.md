@@ -49,4 +49,4 @@ const embedding = new Float32Array(Buffer.from(output.embedding, 'base64').buffe
 Perfect for building semantic search, recommendation systems, or any app that needs to understand text similarity.
 
 ---
-Made by [@zsakib_](https://twitter.com/zsakib_)
+Built by [@zsakib_](https://twitter.com/zsakib_) • [GitHub](https://github.com/zsxkib)
