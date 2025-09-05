@@ -7,17 +7,16 @@ Text embeddings using Google's GEMMA model. 768-dimensional vectors optimized fo
 ## Usage
 
 ```python
-import replicate
-import base64
-import numpy as np
+import replicate, base64, numpy as np
 
-output = replicate.run(
+# Returns a base64 string by default
+b64 = replicate.run(
     "zsxkib/embedding-gemma-300m",
     input={"text": "Your text here"}
 )
 
-# Decode base64 to numpy array
-embedding = np.frombuffer(base64.b64decode(output['embedding']), dtype=np.float32)
+# Decode base64 -> float32 vector (len=768)
+embedding = np.frombuffer(base64.b64decode(b64), dtype=np.float32)
 print(embedding.shape)  # (768,)
 ```
 
@@ -29,7 +28,7 @@ print(embedding.shape)  # (768,)
 
 ## Output
 
-Returns base64-encoded embeddings by default for efficiency. Use `output_format: "array"` for direct lists.
+Returns a base64 string by default (efficient). Set `output_format: "array"` to get a list of floats.
 
 ## Local Development
 
