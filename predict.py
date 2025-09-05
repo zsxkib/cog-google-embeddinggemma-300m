@@ -46,8 +46,8 @@ def map_to_list(ndarray2d):
 
 # Available output formats
 FORMATS = [
-    ("array", map_to_list),
     ("base64", map_to_base64),
+    ("array", map_to_list),
 ]
 FORMATS_MAP = dict(FORMATS)
 
@@ -106,29 +106,34 @@ class Predictor(BasePredictor):
     def predict(
         self,
         text: str = Input(
-            description="Input text to embed (up to model max tokens)",
+            description="Text to embed. Automatically truncated to 2048 tokens if longer.",
         ),
         task: str = Input(
-            description="Task type (affects prompt)",
+            description="Task type - affects the internal prompt used for embedding",
             default="retrieval_document",
             choices=[
-                "retrieval_query",
-                "retrieval_document",
-                "question_answering",
-                "fact_verification",
-                "classification",
-                "clustering",
-                "semantic_similarity",
-                "code_retrieval",
+                "retrieval_query",     # "Represent this query for retrieving relevant documents"
+                "retrieval_document",  # "Represent this document for retrieval" 
+                "classification",      # "Represent this text for classification"
+                "clustering",         # "Represent this text for clustering"
+                "question_answering", # "Represent this question for finding answers"
+                "fact_verification", # "Represent this statement for fact verification"
+                "semantic_similarity", # "Represent this text for semantic similarity"
+                "code_retrieval",     # "Represent this code for retrieval"
             ],
         ),
+        embedding_dim: int = Input(
+            description="Output embedding dimensions using Matryoshka truncation",
+            default=768,
+            choices=[128, 256, 512, 768],
+        ),
         output_format: str = Input(
-            description="Output format",
+            description="Output format: base64 (efficient) or array (list of floats)",
             default="base64",
-            choices=[k for k, _ in FORMATS],
+            choices=["base64", "array"],
         ),
         normalize: bool = Input(
-            description="L2-normalize embeddings",
+            description="Whether to L2-normalize the embedding to unit length",
             default=True,
         ),
     ) -> Union[str, List[float]]:
@@ -170,7 +175,13 @@ class Predictor(BasePredictor):
                 normalize_embeddings=normalize,
             )
 
-        # To numpy -> map -> return single embedding
+        # To numpy and potentially truncate using Matryoshka
         embeddings_np = embeddings.cpu().numpy()
+        
+        # Matryoshka truncation if requested
+        if embedding_dim < 768:
+            embeddings_np = embeddings_np[:, :embedding_dim]
+        
+        # Format output
         map_func = FORMATS_MAP[output_format]
         return map_func(embeddings_np)[0]

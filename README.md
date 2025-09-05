@@ -2,7 +2,7 @@
 
 [![Replicate](https://replicate.com/zsxkib/embedding-gemma-300m/badge)](https://replicate.com/zsxkib/embedding-gemma-300m) 
 
-Text embeddings using Google's GEMMA model. 768-dimensional vectors optimized for search, classification, and retrieval.
+Text embeddings using Google's GEMMA model. 768-dimensional vectors (Matryoshka: 128/256/512/768) optimized for search, classification, and retrieval.
 
 ## Usage
 
@@ -15,7 +15,7 @@ b64 = replicate.run(
     input={"text": "Your text here"}
 )
 
-# Decode base64 -> float32 vector (len=768)
+# Decode base64 -> float32 vector
 embedding = np.frombuffer(base64.b64decode(b64), dtype=np.float32)
 print(embedding.shape)  # (768,)
 ```

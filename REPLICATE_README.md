@@ -3,7 +3,7 @@
 Convert any text into a 768‑dimensional vector. Simple, fast, and compact by default.
 
 ## What you get
-- 768‑dimensional embeddings (Google GEMMA)
+- 768‑dimensional embeddings (128/256/512/768 via Matryoshka) (Google GEMMA)
 - Fast inference (~50ms on GPU)
 - Base64 output by default (compact). Use `array` for floats.
 - Auto‑truncation for long text (no errors)
