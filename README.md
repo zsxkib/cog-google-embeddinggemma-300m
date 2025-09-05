@@ -1,147 +1,147 @@
-# Cog Template Repository
+# EmbeddingGemma-300M for Replicate
 
-This is a template repository for creating [Cog](https://github.com/replicate/cog) models that efficiently handle model weights with proper caching. It includes tools to upload model weights to Google Cloud Storage and generate download code for your `predict.py` file.
+[![Replicate](https://replicate.com/zsxkib/cog-google-embeddinggemma-300m/badge)](https://replicate.com/zsxkib/cog-google-embeddinggemma-300m)
 
-[![Replicate](https://replicate.com/zsxkib/model-name/badge)](https://replicate.com/zsxkib/model-name)
+Run Google's EmbeddingGemma-300M model to turn text into embeddings. The model weights download automatically from CDN, so you don't have to worry about setup.
 
-## Getting Started
+## What it does
 
-To use this template for your own model:
+- **Turn text into numbers**: Google's EmbeddingGemma-300M model converts text into 768-dimensional vectors
+- **Fast downloads**: Model weights cache automatically from CDN on first run
+- **Multiple formats**: Get embeddings as JSON arrays or base64 strings
+- **Task-aware**: Different prompts for search, Q&A, classification, and more
+- **GPU fast**: Runs on CUDA for quick inference
 
-1. Clone this repository
-2. Modify `predict.py` with your model's implementation
-3. Update `cog.yaml` with your model's dependencies
-4. Use `cache_manager.py` to upload and manage model weights
+## Quick Start
 
-## Repository Structure
-
-- `predict.py`: The main model implementation file 
-- `cache_manager.py`: Script for uploading model weights to GCS and generating download code
-- `cog.yaml`: Cog configuration file that defines your model's environment
-
-## Managing Model Weights with cache_manager.py
-
-A key feature of this template is the `cache_manager.py` script, which helps you:
-
-1. Upload model weights to Google Cloud Storage (GCS)
-2. Generate code for downloading those weights in your `predict.py`
-3. Handle both individual files and directories efficiently
-
-### Prerequisites for Using cache_manager.py
-
-- Google Cloud SDK installed and configured (`gcloud` command)
-- Permission to upload to the specified GCS bucket (default: `gs://replicate-weights/`)
-- `tar` command available in your PATH
-
-### Basic Usage
+You need [Docker](https://docs.docker.com/get-docker/) and [Cog](https://github.com/replicate/cog) installed.
 
 ```bash
-python cache_manager.py --model-name your-model-name --local-dirs model_cache
+# Install Cog
+sudo curl -o /usr/local/bin/cog -L https://github.com/replicate/cog/releases/latest/download/cog_$(uname -s)_$(uname -m)
+sudo chmod +x /usr/local/bin/cog
+
+# Clone and run
+git clone https://github.com/zsxkib/cog-google-embeddinggemma-300m
+cd cog-google-embeddinggemma-300m
+cog predict -i text="Hello, world!"
 ```
 
-This will:
-1. Find files and directories in the `model_cache` directory
-2. Create tar archives of each directory
-3. Upload both individual files and tar archives to GCS
-4. Generate code snippets for downloading the weights in your `predict.py`
+The first run takes a few extra minutes to download the 2.4GB model weights. After that, it's cached and fast.
 
-### Advanced Usage
+## How to use it
+
+| Parameter | Type | Default | What it does |
+|-----------|------|---------|-------------|
+| `text` | string | required | Your input text (up to 2048 tokens) |
+| `task` | string | `"retrieval_document"` | What you're using the embedding for |
+| `output_format` | string | `"array"` | How you want the embedding returned |
+| `normalize` | boolean | `true` | Whether to normalize to unit length |
+
+### Task types
+
+Pick the right task for better embeddings:
+
+- `retrieval_query`: When you're searching for something
+- `retrieval_document`: When you're processing documents to search through
+- `question_answering`: For questions that need answers
+- `fact_verification`: For checking if statements are true
+- `classification`: For sorting text into categories
+- `clustering`: For grouping similar texts
+- `semantic_similarity`: For finding how similar texts are
+- `code_retrieval`: For searching code
+
+### Output formats
+
+- `array`: Regular JSON list of numbers
+- `base64`: Compressed binary format (smaller for storage)
+
+## Examples
+
+Basic embedding:
+```bash
+cog predict -i text="Machine learning helps computers learn from data"
+```
+
+For search (document and query):
+```bash
+# Process a document
+cog predict -i text="Python is a programming language" -i task="retrieval_document"
+
+# Process a search query  
+cog predict -i text="What is Python?" -i task="retrieval_query"
+```
+
+Base64 format:
+```bash
+cog predict -i text="Hello world" -i output_format="base64"
+```
+
+## What you get back
+
+```json
+{
+  "embedding": [0.1, -0.3, 0.7, ...],  // 768 numbers
+  "shape": [768],
+  "task": "retrieval_document", 
+  "output_format": "array",
+  "normalized": true,
+  "processing_time_ms": 340.36,
+  "model_info": {
+    "name": "google/embedding-gemma-300m",
+    "dimensions": 768,
+    "max_sequence_length": 2048,
+    "device": "cuda:0"
+  }
+}
+```
+
+## Speed and size
+
+- Model: ~600MB compressed
+- Embeddings: 768 dimensions
+- Text limit: 2048 tokens (roughly 1500 words)
+- Speed: 300-500ms per text on GPU
+- First run: Extra 2-3 minutes for download
+
+## How it works
+
+Google's EmbeddingGemma-300M is a 300 million parameter model trained to create good embeddings. It understands context and can adapt its output based on what task you're doing.
+
+The model downloads automatically using `pget` for parallel downloads and gets cached locally in HuggingFace format.
+
+## Development
+
+Build and test locally:
 
 ```bash
-python cache_manager.py \
-    --model-name your-model-name \
-    --local-dirs model_cache weights \
-    --gcs-base-path gs://replicate-weights/ \
-    --cdn-base-url https://weights.replicate.delivery/default/ \
-    --keep-tars
+cog build
+cog predict -i text="Your text here"
 ```
 
-#### Parameters
+Push to Replicate:
+```bash
+cog push r8.im/your-username/your-model-name
+```
 
-- `--model-name`: Required. The name of your model (used in paths)
-- `--local-dirs`: Required. One or more local directories to process
-- `--gcs-base-path`: Optional. Base Google Cloud Storage path
-- `--cdn-base-url`: Optional. Base CDN URL
-- `--keep-tars`: Optional. Keep the generated .tar files locally after upload
+## Files
 
-## Workflow Example
-
-1. **Develop your model locally**:
-   ```bash
-   # Run your model once to download weights to model_cache
-   cog predict -i prompt="test"
-   ```
-
-2. **Upload model weights**:
-   ```bash
-   python cache_manager.py --model-name your-model-name --local-dirs model_cache
-   ```
-
-3. **Copy the generated code snippet** into your `predict.py`
-
-4. **Test that the model can download weights**:
-   ```bash
-   rm -rf model_cache
-   cog predict -i prompt="test"
-   ```
-
-## Example Implementation
-
-The template comes with a sample Stable Diffusion implementation in `predict.py` that demonstrates:
-
-- Setting up the model cache directory
-- Downloading weights from GCS with progress reporting
-- Setting environment variables for model caching
-- Random seed generation for reproducibility
-- Output format and quality options
-
-## Best Practices
-
-- **Environment Variables**: Set cache-related environment variables early
-  ```python
-  os.environ["HF_HOME"] = MODEL_CACHE
-  os.environ["TORCH_HOME"] = MODEL_CACHE
-  # etc.
-  ```
-
-- **Seed Management**: Provide a seed parameter and implement random seed generation
-  ```python
-  if seed is None:
-      seed = int.from_bytes(os.urandom(2), "big")
-  print(f"Using seed: {seed}")
-  ```
-
-- **Output Formats**: Support multiple output formats (webp, jpg, png) with quality controls
-  ```python
-  output_format: str = Input(
-      description="Format of the output image",
-      choices=["webp", "jpg", "png"],
-      default="webp"
-  )
-  output_quality: int = Input(
-      description="The image compression quality...",
-      ge=1, le=100, default=80
-  )
-  ```
-
-## Deploying to Replicate
-
-After setting up your model, you can push it to [Replicate](https://replicate.com):
-
-1. Create a new model on Replicate
-2. Push your model:
-   ```bash
-   cog push r8.im/username/model-name
-   ```
+- `predict.py`: Model loading and prediction code
+- `cog.yaml`: Environment configuration  
+- `requirements.txt`: Python packages needed
 
 ## License
 
-MIT
+Apache License 2.0
+
+## Credits
+
+- Built on Google's EmbeddingGemma-300M model
+- Uses Replicate's Cog for deployment
+- Model weights served from CDN for fast loading
 
 ---
 
----
-
-⭐ Star this on [GitHub](https://github.com/zsxkib/model-name)!
-
-👋 Follow `zsxkib` on [Twitter/X](https://twitter.com/zsakib_)
+⭐ Star the repo on [GitHub](https://github.com/zsxkib/cog-google-embeddinggemma-300m)!  
+🐦 Follow [@zsakib_](https://twitter.com/zsakib_) on X  
+💻 Check out more projects [@zsxkib](https://github.com/zsxkib) on GitHub
